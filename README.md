@@ -36,3 +36,11 @@ Each binary must be built natively (see `.github/workflows/release.yml`). Window
 ```sh
 go test ./...
 ```
+
+## License
+
+Copyright 2026 Tardigrada07. Licensed under the [Apache License 2.0](LICENSE).
+Free for private and commercial use. If you redistribute it (source or binaries), keep the
+`LICENSE` and `NOTICE` files and state your changes.
+
+This is an independent project, not affiliated with the Microsandbox authors.
