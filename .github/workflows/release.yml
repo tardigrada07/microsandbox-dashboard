@@ -1,0 +1,31 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, name: linux-amd64 }
+          - { os: ubuntu-24.04-arm, name: linux-arm64 }
+          - { os: macos-14, name: darwin-arm64 }
+          # Windows: add once the Microsandbox Go SDK ships a Windows library.
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - run: go vet ./... && go vet -tags sdk ./...
+      - run: go test ./...
+      # The SDK backend uses cgo, so each target is built natively (no cross-compiling).
+      - run: CGO_ENABLED=1 go build -tags sdk -trimpath -ldflags "-s -w" -o msbdash-${{ matrix.name }} .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: msbdash-${{ matrix.name }}
+          path: msbdash-${{ matrix.name }}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Microsandbox Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Microsandbox Dashboard</h1>
+  <button id="new-btn" class="primary">+ New sandbox</button>
+</header>
+<div id="error" class="error" hidden></div>
+<main>
+  <table id="list">
+    <thead><tr><th>Name</th><th>Image</th><th>Status</th><th>CPU</th><th>Memory</th><th>Mounts</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <p id="empty" hidden>No sandboxes yet.</p>
+  <section id="detail" hidden></section>
+</main>
+
+<dialog id="form-dialog">
+  <form method="dialog" id="form">
+    <h2 id="form-title"></h2>
+    <label>Name <input name="name" required pattern="[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,62}"></label>
+    <label>Image <input name="image" required placeholder="node:24-bookworm-slim"></label>
+    <label>CPUs <input name="cpus" type="number" min="1" max="64" value="1" required></label>
+    <label>Memory (MiB) <input name="memoryMiB" type="number" min="128" value="512" required></label>
+    <label>Workdir <input name="workdir" placeholder="/work"></label>
+    <label>Env (one KEY=VALUE per line) <textarea name="env" rows="3"></textarea></label>
+    <label>Mounts (one HOST:GUEST[:ro] per line) <textarea name="mounts" rows="3" placeholder="/home/me/project:/work"></textarea></label>
+    <pre id="plan" hidden></pre>
+    <div class="actions">
+      <button type="button" id="form-cancel">Cancel</button>
+      <button type="button" id="form-preview" hidden>Preview changes</button>
+      <button type="submit" class="primary" id="form-submit">Save</button>
+    </div>
+  </form>
+</dialog>
+<script src="app.js"></script>
+</body>
+</html>
