@@ -1,5 +1,7 @@
 # Microsandbox Dashboard
 
+[![ci](https://github.com/tardigrada07/microsandbox-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/tardigrada07/microsandbox-dashboard/actions/workflows/ci.yml)
+
 A single-binary, localhost-only web dashboard for [Microsandbox](https://microsandbox.dev) sandboxes:
 create, edit (live CPU/memory resize, env, workdir), start, stop and delete sandboxes, and see their
 status, live metrics and mounted directories.
