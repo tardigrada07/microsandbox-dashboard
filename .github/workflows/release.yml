@@ -25,7 +25,7 @@ jobs:
       - run: go test ./...
       # The SDK backend uses cgo, so each target is built natively (no cross-compiling).
       - run: CGO_ENABLED=1 go build -tags sdk -trimpath -ldflags "-s -w" -o msbdash-${{ matrix.name }} .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: msbdash-${{ matrix.name }}
           path: msbdash-${{ matrix.name }}
