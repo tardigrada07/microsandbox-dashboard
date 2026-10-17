@@ -3,6 +3,8 @@
 const $ = (s) => document.querySelector(s);
 const state = { boxes: [], metrics: {}, selected: null, editing: null };
 
+// h builds a DOM element: on* props become listeners, data-* become attributes,
+// children are appended as text (never parsed as HTML, so untrusted names are safe).
 function h(tag, props, ...kids) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props || {})) {
@@ -25,6 +27,7 @@ function showError(msg) {
   e.textContent = msg || '';
 }
 
+// api calls the dashboard's JSON API; non-2xx responses throw with the server's error text.
 async function api(method, url, body) {
   const res = await fetch(url, {
     method,
@@ -37,6 +40,7 @@ async function api(method, url, body) {
   return data;
 }
 
+// act runs a user action, shows any error in the banner, then reloads the list.
 async function act(fn) {
   try { showError(''); await fn(); await refresh(); } catch (e) { showError(e.message); }
 }
@@ -77,6 +81,8 @@ function updateMetrics() {
   renderDetail();
 }
 
+// render rebuilds the table and detail panel from state. Used after real changes;
+// live metrics use updateMetrics so buttons are not replaced under the cursor.
 function render() {
   const tbody = $('#list tbody');
   tbody.replaceChildren(...state.boxes.map((b) => {
@@ -184,6 +190,8 @@ function parseMounts(text) {
   });
 }
 
+// modifyBody turns the edit form into a PATCH body containing only what changed
+// (env keys removed from the textarea go into envRemove).
 function modifyBody(dryRun) {
   const f = form.elements;
   const old = state.editing;

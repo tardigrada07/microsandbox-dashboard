@@ -56,6 +56,8 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	_ = enc.Encode(v)
 }
 
+// writeErr maps backend errors to HTTP status codes: not found 404, already
+// exists / still running 409, invalid input 400, anything else 500.
 func writeErr(w http.ResponseWriter, err error) {
 	code := http.StatusInternalServerError
 	switch {
@@ -73,6 +75,8 @@ func invalid(format string, a ...any) error {
 	return fmt.Errorf("%w: %s", sandbox.ErrInvalid, fmt.Sprintf(format, a...))
 }
 
+// decode reads a JSON body (max 1 MiB) and rejects unknown fields, so typos in
+// requests fail loudly instead of being silently ignored.
 func decode(r *http.Request, v any) error {
 	r.Body = http.MaxBytesReader(nil, r.Body, 1<<20)
 	dec := json.NewDecoder(r.Body)
@@ -83,6 +87,8 @@ func decode(r *http.Request, v any) error {
 	return nil
 }
 
+// validAbs accepts only clean absolute paths: no relative parts, no "..", no
+// trailing slash, no NUL bytes. Used for workdirs and mount paths.
 func validAbs(p string) bool {
 	return strings.HasPrefix(p, "/") && !strings.ContainsRune(p, 0) && path.Clean(p) == p || p == "/"
 }
@@ -110,6 +116,8 @@ func validateResources(cpus, mem int, required bool) error {
 	return nil
 }
 
+// validateCreate checks every field of a create request. It is the only line of
+// defense before the values reach the backend, so keep it strict.
 func validateCreate(c *sandbox.CreateSpec) error {
 	if !nameRe.MatchString(c.Name) {
 		return invalid("name must match %s", nameRe)
@@ -139,6 +147,7 @@ func validateCreate(c *sandbox.CreateSpec) error {
 	return nil
 }
 
+// validateModify checks a partial update; zero CPUs or memory mean "unchanged".
 func validateModify(m *sandbox.ModifySpec) error {
 	if err := validateResources(m.CPUs, m.MemoryMiB, false); err != nil {
 		return err
@@ -206,6 +215,7 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, b)
 }
 
+// modify edits a sandbox. With "dryRun": true it only returns the plan of changes.
 func (s *Server) modify(w http.ResponseWriter, r *http.Request) {
 	n, err := checkName(r)
 	if err != nil {

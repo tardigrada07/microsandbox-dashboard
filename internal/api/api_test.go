@@ -11,10 +11,14 @@ import (
 
 const tok = "secret"
 
+// newSrv returns the full guarded handler on top of an empty in-memory backend.
 func newSrv() http.Handler {
 	return (&Server{Backend: sandbox.NewFake(), Token: tok}).Handler()
 }
 
+// do sends a request as a legitimate browser would: loopback Host, same-origin
+// Origin on unsafe methods, and a valid token cookie. mut lets a test break one
+// of those to check that the guard rejects it.
 func do(h http.Handler, method, target, body string, mut func(*http.Request)) *httptest.ResponseRecorder {
 	r := httptest.NewRequest(method, target, strings.NewReader(body))
 	r.Host = "127.0.0.1:8484"
@@ -31,6 +35,8 @@ func do(h http.Handler, method, target, body string, mut func(*http.Request)) *h
 	return w
 }
 
+// TestCheckLoopbackAddr: only loopback listen addresses may be accepted; wildcard
+// and LAN addresses must be refused so the dashboard is never reachable remotely.
 func TestCheckLoopbackAddr(t *testing.T) {
 	for addr, ok := range map[string]bool{
 		"127.0.0.1:1": true, "[::1]:1": true, "localhost:1": true,
@@ -42,6 +48,8 @@ func TestCheckLoopbackAddr(t *testing.T) {
 	}
 }
 
+// TestGuard covers the request guard: a foreign Host (DNS rebinding), a missing or
+// wrong token cookie, and unsafe methods with a missing or cross-origin Origin (CSRF).
 func TestGuard(t *testing.T) {
 	h := newSrv()
 	cases := []struct {
@@ -69,6 +77,7 @@ func TestGuard(t *testing.T) {
 	}
 }
 
+// TestSecurityHeaders: every response carries the CSP and nosniff headers.
 func TestSecurityHeaders(t *testing.T) {
 	w := do(newSrv(), "GET", "/api/sandboxes", "", nil)
 	if !strings.Contains(w.Header().Get("Content-Security-Policy"), "default-src 'self'") ||
@@ -77,6 +86,8 @@ func TestSecurityHeaders(t *testing.T) {
 	}
 }
 
+// TestTokenExchange: opening the printed URL (?token=...) sets the cookie and
+// redirects; a wrong token is refused.
 func TestTokenExchange(t *testing.T) {
 	h := newSrv()
 	w := do(h, "GET", "/?token="+tok, "", func(r *http.Request) { r.Header.Del("Cookie") })
@@ -88,6 +99,8 @@ func TestTokenExchange(t *testing.T) {
 	}
 }
 
+// TestLifecycle walks one sandbox through create, start, edit (dry run, then apply),
+// stop and delete, checking the status codes and that a dry run changes nothing.
 func TestLifecycle(t *testing.T) {
 	h := newSrv()
 	create := `{"name":"box1","image":"node:24","cpus":2,"memoryMiB":1024,"mounts":[{"hostPath":"/a","guestPath":"/b"}]}`
@@ -128,6 +141,8 @@ func TestLifecycle(t *testing.T) {
 	}
 }
 
+// TestValidation: malformed names, images, resources, env keys, mount paths,
+// unknown JSON fields and non-JSON bodies are rejected with 400 before reaching a backend.
 func TestValidation(t *testing.T) {
 	h := newSrv()
 	bad := []string{

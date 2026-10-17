@@ -20,7 +20,9 @@ type storedMount struct {
 	} `json:"options"`
 }
 
-// ParseStoredMounts extracts mounts from a sandbox's persisted config JSON.
+// ParseStoredMounts extracts mounts from a sandbox's persisted config JSON and
+// returns them sorted by guest path. A config without a "mounts" key yields an
+// empty list, not an error.
 func ParseStoredMounts(configJSON string) ([]Mount, error) {
 	var cfg struct {
 		Mounts []storedMount `json:"mounts"`

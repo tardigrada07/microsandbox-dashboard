@@ -21,6 +21,8 @@ func NewSDK(ctx context.Context) (*SDK, error) {
 	return &SDK{}, nil
 }
 
+// mapErr translates SDK error kinds to the package's sentinel errors, which the
+// HTTP layer maps to status codes. Unknown errors pass through unchanged.
 func mapErr(err error) error {
 	switch {
 	case err == nil:
@@ -35,6 +37,9 @@ func mapErr(err error) error {
 	return err
 }
 
+// toSandbox converts an SDK handle into the dashboard's Sandbox. Image, CPUs,
+// memory, workdir and env come from Config(); mounts are parsed from the raw
+// stored config because Config() does not decode them.
 func toSandbox(h *msb.SandboxHandle) (Sandbox, error) {
 	cfg, err := h.Config()
 	if err != nil {
@@ -58,6 +63,7 @@ func toSandbox(h *msb.SandboxHandle) (Sandbox, error) {
 	return s, nil
 }
 
+// List returns all sandboxes, following the SDK's pagination cursor.
 func (*SDK) List(ctx context.Context) ([]Sandbox, error) {
 	out := []Sandbox{}
 	var opts []msb.SandboxListOption
@@ -120,6 +126,9 @@ func (b *SDK) Create(ctx context.Context, c CreateSpec) (Sandbox, error) {
 	return b.Get(ctx, c.Name)
 }
 
+// Modify plans or applies a config change through the SDK (DryRun only plans).
+// The SDK's default policy does not restart the sandbox; changes that cannot be
+// applied live persist for the next boot.
 func (*SDK) Modify(ctx context.Context, name string, m ModifySpec) (Plan, error) {
 	h, err := msb.GetSandbox(ctx, name)
 	if err != nil {
@@ -156,6 +165,8 @@ func deref(s *string) string {
 	return *s
 }
 
+// Start boots a stopped sandbox detached, so it keeps running after the
+// dashboard exits.
 func (*SDK) Start(ctx context.Context, name string) error {
 	sb, err := msb.StartSandboxDetached(ctx, name)
 	if err != nil {
@@ -172,6 +183,7 @@ func (*SDK) Stop(ctx context.Context, name string) error {
 	return mapErr(h.Stop(ctx))
 }
 
+// Remove deletes a sandbox. The SDK refuses while it is running (ErrRunning).
 func (*SDK) Remove(ctx context.Context, name string) error {
 	return mapErr(msb.RemoveSandbox(ctx, name))
 }
