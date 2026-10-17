@@ -11,7 +11,7 @@ function h(tag, props, ...kids) {
     if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
     else if (k === 'class') el.className = v;
     else if (k.startsWith('data-')) el.setAttribute(k, v);
-    else el[k] = v;
+    else throw new Error(`h(): unsupported prop ${k}`); // allowlist: no arbitrary property writes
   }
   for (const k of kids.flat()) el.append(k instanceof Node ? k : String(k ?? ''));
   return el;
@@ -26,6 +26,9 @@ function showError(msg) {
   e.hidden = !msg;
   e.textContent = msg || '';
 }
+
+// sbUrl builds a sandbox API path; the name is encoded so it can never alter the path.
+const sbUrl = (name, action = '') => '/api/sandboxes/' + encodeURIComponent(name) + action;
 
 // api calls the dashboard's JSON API; non-2xx responses throw with the server's error text.
 async function api(method, url, body) {
@@ -95,8 +98,8 @@ function render() {
       h('td', {}, String(b.mounts.length)),
       h('td', {},
         running
-          ? h('button', { onclick: (e) => { e.stopPropagation(); act(() => api('POST', `/api/sandboxes/${b.name}/stop`)); } }, 'Stop')
-          : h('button', { onclick: (e) => { e.stopPropagation(); act(() => api('POST', `/api/sandboxes/${b.name}/start`)); } }, 'Start'),
+          ? h('button', { onclick: (e) => { e.stopPropagation(); act(() => api('POST', sbUrl(b.name, "/stop"))); } }, 'Stop')
+          : h('button', { onclick: (e) => { e.stopPropagation(); act(() => api('POST', sbUrl(b.name, "/start"))); } }, 'Start'),
         h('button', { onclick: (e) => { e.stopPropagation(); openForm(b); } }, 'Edit'),
         h('button', { class: 'danger', onclick: (e) => { e.stopPropagation(); del(b); } }, 'Delete')));
   }));
@@ -140,8 +143,8 @@ function renderDetail() {
 function del(b) {
   if (!confirm(`Delete sandbox "${b.name}"? This cannot be undone.`)) return;
   act(async () => {
-    if (b.status === 'running') await api('POST', `/api/sandboxes/${b.name}/stop`);
-    await api('DELETE', `/api/sandboxes/${b.name}`);
+    if (b.status === 'running') await api('POST', sbUrl(b.name, "/stop"));
+    await api('DELETE', sbUrl(b.name));
     if (state.selected === b.name) state.selected = null;
   });
 }
@@ -207,7 +210,7 @@ $('#form-cancel').addEventListener('click', () => dialog.close());
 
 $('#form-preview').addEventListener('click', async () => {
   try {
-    const p = await api('PATCH', `/api/sandboxes/${state.editing.name}`, modifyBody(true));
+    const p = await api('PATCH', sbUrl(state.editing.name), modifyBody(true));
     const lines = [...p.changes, ...p.conflicts.map((c) => 'CONFLICT ' + c), ...p.warnings.map((w) => 'warning: ' + w)];
     $('#plan').textContent = lines.length ? lines.join('\n') : 'No changes.';
     $('#plan').hidden = false;
@@ -219,7 +222,7 @@ form.addEventListener('submit', (ev) => {
   const f = form.elements;
   act(async () => {
     if (state.editing) {
-      await api('PATCH', `/api/sandboxes/${state.editing.name}`, modifyBody(false));
+      await api('PATCH', sbUrl(state.editing.name), modifyBody(false));
     } else {
       await api('POST', '/api/sandboxes', {
         name: f.name.value, image: f.image.value, cpus: +f.cpus.value, memoryMiB: +f.memoryMiB.value,
