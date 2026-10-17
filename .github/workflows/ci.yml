@@ -1,0 +1,87 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Default build: pure Go (in-memory demo backend). Runs everywhere, including Windows.
+  demo:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: gofmt
+        if: runner.os != 'Windows'
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go vet ./...
+      - run: go test -race ./...
+        if: runner.os != 'Windows'
+      - run: go test ./...
+        if: runner.os == 'Windows'
+      - run: go build -o msbdash-demo .
+      - name: JS syntax check
+        run: node --check web/app.js
+
+  # Real Microsandbox backend: cgo, so it must be built natively on a supported OS.
+  # This only compiles (no KVM on hosted runners), it does not start any VM.
+  sdk:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - run: go vet -tags sdk ./...
+        env:
+          CGO_ENABLED: "1"
+      - run: go build -tags sdk -o msbdash-sdk .
+        env:
+          CGO_ENABLED: "1"
+
+  # Known vulnerabilities (Go stdlib + dependencies) and insecure code patterns.
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+          CGO_ENABLED=1 govulncheck -tags sdk ./...
+      - name: gosec
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -quiet ./...
+          CGO_ENABLED=1 gosec -quiet -tags sdk ./...
+
+  # Pull requests only: block newly added dependencies with known vulnerabilities.
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high

@@ -164,12 +164,13 @@ func (f *Fake) Metrics(_ context.Context) (map[string]Metrics, error) {
 	out := map[string]Metrics{}
 	for name, t := range f.started {
 		b := f.boxes[name]
-		limit := uint64(b.MemoryMiB) << 20
+		limit := float64(b.MemoryMiB) * (1 << 20)
 		up := time.Since(t).Seconds()
+		// Random values are demo data only, not security sensitive.
 		out[name] = Metrics{
-			CPUPercent:       rand.Float64() * 60,
-			MemoryBytes:      limit/4 + uint64(rand.Int63n(int64(limit/8)+1)),
-			MemoryLimitBytes: limit,
+			CPUPercent:       rand.Float64() * 60,                      // #nosec G404 -- demo data
+			MemoryBytes:      uint64(limit/4 + rand.Float64()*limit/8), // #nosec G404 -- demo data
+			MemoryLimitBytes: uint64(limit),
 			DiskReadBytes:    uint64(up * 1e5),
 			DiskWriteBytes:   uint64(up * 5e4),
 			NetRxBytes:       uint64(up * 2e4),

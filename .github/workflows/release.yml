@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: stable
       - run: go vet ./... && go vet -tags sdk ./...
       - run: go test ./...
       # The SDK backend uses cgo, so each target is built natively (no cross-compiling).

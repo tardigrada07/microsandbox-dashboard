@@ -92,8 +92,8 @@ func (*SDK) Get(ctx context.Context, name string) (Sandbox, error) {
 func (b *SDK) Create(ctx context.Context, c CreateSpec) (Sandbox, error) {
 	opts := []msb.SandboxOption{
 		msb.WithImage(c.Image),
-		msb.WithCPUs(uint8(c.CPUs)),
-		msb.WithMemory(uint32(c.MemoryMiB)),
+		msb.WithCPUs(uint8(c.CPUs)),         // #nosec G115 -- range validated by the API (1-64)
+		msb.WithMemory(uint32(c.MemoryMiB)), // #nosec G115 -- range validated by the API (128-1048576)
 		msb.WithDetached(),
 	}
 	if c.Workdir != "" {
@@ -126,7 +126,7 @@ func (*SDK) Modify(ctx context.Context, name string, m ModifySpec) (Plan, error)
 		return Plan{}, mapErr(err)
 	}
 	o := msb.ModifyOptions{
-		CPUs: uint8(m.CPUs), MemoryMiB: uint32(m.MemoryMiB),
+		CPUs: uint8(m.CPUs), MemoryMiB: uint32(m.MemoryMiB), // #nosec G115 -- range validated by the API
 		Env: m.Env, EnvRemove: m.EnvRemove, DryRun: m.DryRun,
 	}
 	if m.Workdir != nil {

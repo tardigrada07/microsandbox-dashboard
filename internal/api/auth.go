@@ -80,7 +80,8 @@ func guard(token string, next http.Handler) http.Handler {
 		// First visit: ?token=... sets the cookie and drops the token from the URL.
 		if t := r.URL.Query().Get("token"); t != "" && r.Method == http.MethodGet {
 			if tokenEqual(t, token) {
-				http.SetCookie(w, &http.Cookie{
+				// Not Secure: the dashboard is plain HTTP on loopback (Safari drops Secure cookies there).
+				http.SetCookie(w, &http.Cookie{ // #nosec G124 -- HttpOnly + SameSite=Strict, loopback HTTP only
 					Name: cookieName, Value: token, Path: "/",
 					HttpOnly: true, SameSite: http.SameSiteStrictMode,
 				})

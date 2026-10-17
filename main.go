@@ -65,15 +65,17 @@ func main() {
 	}
 }
 
+// openBrowser opens our own dashboard URL (loopback address + random token);
+// no user-supplied input reaches the command line.
 func openBrowser(url string) {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", url)
+		cmd = exec.Command("open", url) // #nosec G204 -- URL built from our listener and token
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url) // #nosec G204 -- same
 	default:
-		cmd = exec.Command("xdg-open", url)
+		cmd = exec.Command("xdg-open", url) // #nosec G204 -- same
 	}
 	_ = cmd.Start()
 }
