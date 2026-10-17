@@ -2,7 +2,7 @@ name: codeql
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
   schedule:
     - cron: "0 6 * * 1" # weekly, catches newly published query packs
