@@ -1,6 +1,9 @@
 'use strict';
 
 const $ = (s) => document.querySelector(s);
+const listBody = $('#list tbody');
+const planBox = $('#plan');
+const previewBtn = $('#form-preview');
 const state = { boxes: [], metrics: {}, selected: null, editing: null };
 
 // h builds a DOM element: on* props become listeners, data-* become attributes,
@@ -75,7 +78,7 @@ function memNodes(b) {
 
 // Live metrics only touch the usage cells, so buttons are not rebuilt under the cursor.
 function updateMetrics() {
-  for (const tr of $('#list tbody').children) {
+  for (const tr of listBody.children) {
     const b = state.boxes.find((x) => x.name === tr.dataset.name);
     if (!b) continue;
     tr.querySelector('.u-cpu').replaceChildren(...cpuNodes(b));
@@ -87,8 +90,7 @@ function updateMetrics() {
 // render rebuilds the table and detail panel from state. Used after real changes;
 // live metrics use updateMetrics so buttons are not replaced under the cursor.
 function render() {
-  const tbody = $('#list tbody');
-  tbody.replaceChildren(...state.boxes.map((b) => {
+  listBody.replaceChildren(...state.boxes.map((b) => {
     const running = b.status === 'running';
     return h('tr', { class: 'row', 'data-name': b.name, onclick: () => { state.selected = state.selected === b.name ? null : b.name; render(); } },
       h('td', {}, b.name), h('td', {}, b.image),
@@ -157,9 +159,9 @@ const dialog = $('#form-dialog');
 function openForm(box) {
   state.editing = box || null;
   form.reset();
-  $('#plan').hidden = true;
+  planBox.hidden = true;
   $('#form-title').textContent = box ? `Edit ${box.name}` : 'New sandbox';
-  $('#form-preview').hidden = !box;
+  previewBtn.hidden = !box;
   for (const n of ['name', 'image', 'mounts']) form.elements[n].disabled = !!box;
   if (box) {
     form.elements.name.value = box.name;
@@ -183,13 +185,28 @@ function parseEnv(text) {
   return env;
 }
 
+// validAbsPath mirrors the server's validAbs: absolute, no "." or ".." parts,
+// no empty parts, no trailing slash.
+function validAbsPath(p) {
+  return p === '/' || (p.startsWith('/') && !p.includes('\0') && !p.endsWith('/') &&
+    p.split('/').slice(1).every((s) => s !== '' && s !== '.' && s !== '..'));
+}
+
+// parseMounts reads one HOST:GUEST[:ro] per line. An empty field means no mounts.
 function parseMounts(text) {
+  const seen = new Set();
   return text.split('\n').map((l) => l.trim()).filter(Boolean).map((line) => {
     const p = line.split(':');
     const readonly = p[p.length - 1] === 'ro';
     if (readonly) p.pop();
-    if (p.length !== 2) throw new Error(`Bad mount line: ${line}`);
-    return { hostPath: p[0], guestPath: p[1], readonly };
+    if (p.length !== 2) throw new Error(`Bad mount line (expected HOST:GUEST[:ro]): ${line}`);
+    const [hostPath, guestPath] = p;
+    if (!validAbsPath(hostPath) || !validAbsPath(guestPath)) {
+      throw new Error(`Mount paths must be clean absolute paths (no trailing slash, "." or ".."): ${line}`);
+    }
+    if (seen.has(guestPath)) throw new Error(`Duplicate guest path: ${guestPath}`);
+    seen.add(guestPath);
+    return { hostPath, guestPath, readonly };
   });
 }
 
@@ -208,13 +225,13 @@ function modifyBody(dryRun) {
 
 $('#form-cancel').addEventListener('click', () => dialog.close());
 
-$('#form-preview').addEventListener('click', async () => {
+previewBtn.addEventListener('click', async () => {
   try {
     const p = await api('PATCH', sbUrl(state.editing.name), modifyBody(true));
     const lines = [...p.changes, ...p.conflicts.map((c) => 'CONFLICT ' + c), ...p.warnings.map((w) => 'warning: ' + w)];
-    $('#plan').textContent = lines.length ? lines.join('\n') : 'No changes.';
-    $('#plan').hidden = false;
-  } catch (e) { $('#plan').textContent = e.message; $('#plan').hidden = false; }
+    planBox.textContent = lines.length ? lines.join('\n') : 'No changes.';
+    planBox.hidden = false;
+  } catch (e) { planBox.textContent = e.message; planBox.hidden = false; }
 });
 
 form.addEventListener('submit', (ev) => {
