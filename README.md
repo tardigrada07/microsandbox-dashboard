@@ -23,6 +23,17 @@ go build -o msbdash . && ./msbdash
 On start it prints `http://127.0.0.1:8484/?token=...` and opens it in your browser. Flags: `--addr`
 (loopback only), `--no-browser`.
 
+## Creating a sandbox
+
+Click **New sandbox** and fill in the form (hover the **i** icons for field help):
+
+- **Image:** pick a preset (Ubuntu latest/LTS, Debian, Python, Java) or type any image reference.
+- **CPUs / Memory:** 1-64 CPUs and at least 128 MiB. Both can be resized live after creation.
+- **Workdir:** absolute directory where commands start; empty uses the image default.
+- **Env:** one `KEY=VALUE` per line.
+- **Mounts:** optional, one `HOST:GUEST[:ro]` per line with absolute paths, e.g. `/home/me/project:/work`.
+  Leave it empty for no shared host folders. Mounts, name and image are fixed once created.
+
 ## Requirements
 
 Docker is not required.
@@ -50,5 +61,17 @@ Each binary must be built natively (see `.github/workflows/release.yml`). Window
 ## Test
 
 ```sh
+go vet ./...
 go test ./...
 ```
+
+The tests use the in-memory backend, so they need no KVM or cgo. They do not cover `web/`; after editing
+`web/app.js`, also run `node --check web/app.js` and reload the page.
+
+## Contributing
+
+`master` is protected: create a branch, push it and open a pull request. CI must pass before merging.
+
+## License
+
+Apache License 2.0, see `LICENSE` and `NOTICE`.
