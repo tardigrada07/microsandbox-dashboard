@@ -90,8 +90,7 @@ function updateMetrics() {
 // render rebuilds the table and detail panel from state. Used after real changes;
 // live metrics use updateMetrics so buttons are not replaced under the cursor.
 function render() {
-  const tbody = listBody;
-  tbody.replaceChildren(...state.boxes.map((b) => {
+  listBody.replaceChildren(...state.boxes.map((b) => {
     const running = b.status === 'running';
     return h('tr', { class: 'row', 'data-name': b.name, onclick: () => { state.selected = state.selected === b.name ? null : b.name; render(); } },
       h('td', {}, b.name), h('td', {}, b.image),
