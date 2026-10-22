@@ -23,6 +23,19 @@ go build -o msbdash . && ./msbdash
 On start it prints `http://127.0.0.1:8484/?token=...` and opens it in your browser. Flags: `--addr`
 (loopback only), `--no-browser`.
 
+## Requirements
+
+Docker is not required.
+
+- **Images:** the images (`ubuntu:latest`, `python:3.13-slim` and so on) are OCI images, the same format
+  Docker uses. Microsandbox pulls them from a registry (Docker Hub by default) itself, so you don't need a
+  Docker daemon or the `docker` CLI.
+- **Runtime:** each sandbox is a microVM, not a container. There is no daemon; the dashboard talks to
+  sandboxes directly. The SDK downloads `msb` and libkrunfw to `~/.microsandbox` on first use
+  (`EnsureRuntime`).
+- **Real build:** Linux with KVM (or macOS on Apple Silicon) and a C toolchain, because the SDK uses cgo.
+  The demo build needs none of this.
+
 ## Security
 
 - Only loopback listen addresses are accepted.

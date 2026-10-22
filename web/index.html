@@ -24,13 +24,22 @@
 <dialog id="form-dialog">
   <form method="dialog" id="form">
     <h2 id="form-title"></h2>
-    <label>Name <input name="name" required pattern="[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,62}"></label>
-    <label>Image <input name="image" required placeholder="node:24-bookworm-slim"></label>
-    <label>CPUs <input name="cpus" type="number" min="1" max="64" value="1" required></label>
-    <label>Memory (MiB) <input name="memoryMiB" type="number" min="128" value="512" required></label>
-    <label>Workdir <input name="workdir" placeholder="/work"></label>
-    <label>Env (one KEY=VALUE per line) <textarea name="env" rows="3"></textarea></label>
-    <label>Mounts (one HOST:GUEST[:ro] per line) <textarea name="mounts" rows="3" placeholder="/home/me/project:/work"></textarea></label>
+    <label>Name <span class="info" role="note" data-tip="Unique sandbox name. Letters, digits, dot, dash and underscore; must start with a letter or digit (max 63 chars). Cannot be changed later.">i</span><input name="name" required pattern="[a-zA-Z0-9][a-zA-Z0-9_.\-]{0,62}"></label>
+    <label>Image <span class="info" role="note" data-tip="OCI image the sandbox boots from. Pick a preset or type any image reference, e.g. node:24-bookworm-slim. Cannot be changed later.">i</span><input name="image" required list="image-options" autocomplete="off" placeholder="Select or type an image, e.g. node:24-bookworm-slim"></label>
+    <datalist id="image-options">
+      <option value="ubuntu:latest" label="Ubuntu (latest)"></option>
+      <option value="ubuntu:24.04" label="Ubuntu LTS (24.04)"></option>
+      <option value="debian:stable-slim" label="Debian (stable)"></option>
+      <option value="python:3.13-slim" label="Python 3.13"></option>
+      <option value="python:latest" label="Python (latest)"></option>
+      <option value="eclipse-temurin:21-jdk" label="Java 21 (Temurin JDK)"></option>
+      <option value="eclipse-temurin:17-jdk" label="Java 17 (Temurin JDK)"></option>
+    </datalist>
+    <label>CPUs <span class="info" role="note" data-tip="Number of virtual CPUs (1-64). Can be resized live.">i</span><input name="cpus" type="number" min="1" max="64" value="1" required></label>
+    <label>Memory (MiB) <span class="info" role="note" data-tip="RAM in MiB (minimum 128). Can be resized live.">i</span><input name="memoryMiB" type="number" min="128" value="512" required></label>
+    <label>Workdir <span class="info" role="note" data-tip="Directory inside the sandbox where commands start. Must be a clean absolute path such as /work. Leave empty to use the image default.">i</span><input name="workdir" placeholder="/work"></label>
+    <label>Env (one KEY=VALUE per line) <span class="info" role="note" data-tip="Environment variables set inside the sandbox, one KEY=VALUE per line.">i</span><textarea name="env" rows="3"></textarea></label>
+    <label>Mounts (one HOST:GUEST[:ro] per line) <span class="info" role="note" data-tip="Share host folders with the sandbox. HOST and GUEST must be absolute paths; add :ro for read-only. Each guest path can be used once. Set at creation only.">i</span><textarea name="mounts" rows="3" placeholder="/home/me/project:/work"></textarea></label>
     <pre id="plan" hidden></pre>
     <div class="actions">
       <button type="button" id="form-cancel">Cancel</button>

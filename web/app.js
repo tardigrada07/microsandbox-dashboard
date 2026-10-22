@@ -183,13 +183,28 @@ function parseEnv(text) {
   return env;
 }
 
+// validAbsPath mirrors the server's validAbs: absolute, no "." or ".." parts,
+// no empty parts, no trailing slash.
+function validAbsPath(p) {
+  return p === '/' || (p.startsWith('/') && !p.includes('\0') && !p.endsWith('/') &&
+    p.split('/').slice(1).every((s) => s !== '' && s !== '.' && s !== '..'));
+}
+
+// parseMounts reads one HOST:GUEST[:ro] per line. An empty field means no mounts.
 function parseMounts(text) {
+  const seen = new Set();
   return text.split('\n').map((l) => l.trim()).filter(Boolean).map((line) => {
     const p = line.split(':');
     const readonly = p[p.length - 1] === 'ro';
     if (readonly) p.pop();
-    if (p.length !== 2) throw new Error(`Bad mount line: ${line}`);
-    return { hostPath: p[0], guestPath: p[1], readonly };
+    if (p.length !== 2) throw new Error(`Bad mount line (expected HOST:GUEST[:ro]): ${line}`);
+    const [hostPath, guestPath] = p;
+    if (!validAbsPath(hostPath) || !validAbsPath(guestPath)) {
+      throw new Error(`Mount paths must be clean absolute paths (no trailing slash, "." or ".."): ${line}`);
+    }
+    if (seen.has(guestPath)) throw new Error(`Duplicate guest path: ${guestPath}`);
+    seen.add(guestPath);
+    return { hostPath, guestPath, readonly };
   });
 }
 

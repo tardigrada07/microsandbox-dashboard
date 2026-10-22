@@ -22,8 +22,11 @@ button.danger { color:var(--bad); }
 #detail dt { color:var(--muted); }
 code,pre { font-family:ui-monospace,monospace; font-size:13px; }
 dialog { border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); min-width:420px; }
-dialog label { display:block; margin:8px 0; }
+dialog label { position:relative; display:block; margin:8px 0; }
 dialog input,dialog textarea { display:block; width:100%; box-sizing:border-box; margin-top:2px; font:inherit; padding:4px 6px; background:transparent; color:inherit; border:1px solid var(--line); border-radius:4px; }
 dialog input:disabled { opacity:.6; }
 .actions { display:flex; justify-content:flex-end; margin-top:12px; }
 pre#plan { background:rgba(128,128,128,.12); padding:8px; border-radius:6px; white-space:pre-wrap; }
+.info { display:inline-block; width:1.2em; height:1.2em; line-height:1.2em; margin-left:4px; text-align:center; font-size:.75em; font-style:italic; font-weight:bold; border:1px solid var(--line); border-radius:50%; cursor:default; vertical-align:middle; }
+.info::after { content:attr(data-tip); display:none; position:absolute; left:0; right:0; top:calc(100% + 2px); padding:6px 8px; font-size:12px; font-style:normal; font-weight:normal; line-height:1.4; text-align:left; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,.25); z-index:10; }
+.info:hover::after { display:block; }

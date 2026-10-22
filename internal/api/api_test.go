@@ -154,6 +154,8 @@ func TestValidation(t *testing.T) {
 		`{"name":"a","image":"i","cpus":1,"memoryMiB":256,"env":{"1BAD":"x"}}`,
 		`{"name":"a","image":"i","cpus":1,"memoryMiB":256,"mounts":[{"hostPath":"rel","guestPath":"/b"}]}`,
 		`{"name":"a","image":"i","cpus":1,"memoryMiB":256,"mounts":[{"hostPath":"/a/../b","guestPath":"/b"}]}`,
+		`{"name":"a","image":"i","cpus":1,"memoryMiB":256,"mounts":[{"hostPath":"/a/","guestPath":"/b"}]}`,
+		`{"name":"a","image":"i","cpus":1,"memoryMiB":256,"mounts":[{"hostPath":"/a","guestPath":"/b"},{"hostPath":"/c","guestPath":"/b"}]}`,
 		`{"name":"a","image":"i","cpus":1,"memoryMiB":256,"extra":1}`,
 		`not json`,
 	}
