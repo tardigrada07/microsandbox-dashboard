@@ -1,6 +1,9 @@
 'use strict';
 
 const $ = (s) => document.querySelector(s);
+const listBody = $('#list tbody');
+const planBox = $('#plan');
+const previewBtn = $('#form-preview');
 const state = { boxes: [], metrics: {}, selected: null, editing: null };
 
 // h builds a DOM element: on* props become listeners, data-* become attributes,
@@ -75,7 +78,7 @@ function memNodes(b) {
 
 // Live metrics only touch the usage cells, so buttons are not rebuilt under the cursor.
 function updateMetrics() {
-  for (const tr of $('#list tbody').children) {
+  for (const tr of listBody.children) {
     const b = state.boxes.find((x) => x.name === tr.dataset.name);
     if (!b) continue;
     tr.querySelector('.u-cpu').replaceChildren(...cpuNodes(b));
@@ -87,7 +90,7 @@ function updateMetrics() {
 // render rebuilds the table and detail panel from state. Used after real changes;
 // live metrics use updateMetrics so buttons are not replaced under the cursor.
 function render() {
-  const tbody = $('#list tbody');
+  const tbody = listBody;
   tbody.replaceChildren(...state.boxes.map((b) => {
     const running = b.status === 'running';
     return h('tr', { class: 'row', 'data-name': b.name, onclick: () => { state.selected = state.selected === b.name ? null : b.name; render(); } },
@@ -157,9 +160,9 @@ const dialog = $('#form-dialog');
 function openForm(box) {
   state.editing = box || null;
   form.reset();
-  $('#plan').hidden = true;
+  planBox.hidden = true;
   $('#form-title').textContent = box ? `Edit ${box.name}` : 'New sandbox';
-  $('#form-preview').hidden = !box;
+  previewBtn.hidden = !box;
   for (const n of ['name', 'image', 'mounts']) form.elements[n].disabled = !!box;
   if (box) {
     form.elements.name.value = box.name;
@@ -223,13 +226,13 @@ function modifyBody(dryRun) {
 
 $('#form-cancel').addEventListener('click', () => dialog.close());
 
-$('#form-preview').addEventListener('click', async () => {
+previewBtn.addEventListener('click', async () => {
   try {
     const p = await api('PATCH', sbUrl(state.editing.name), modifyBody(true));
     const lines = [...p.changes, ...p.conflicts.map((c) => 'CONFLICT ' + c), ...p.warnings.map((w) => 'warning: ' + w)];
-    $('#plan').textContent = lines.length ? lines.join('\n') : 'No changes.';
-    $('#plan').hidden = false;
-  } catch (e) { $('#plan').textContent = e.message; $('#plan').hidden = false; }
+    planBox.textContent = lines.length ? lines.join('\n') : 'No changes.';
+    planBox.hidden = false;
+  } catch (e) { planBox.textContent = e.message; planBox.hidden = false; }
 });
 
 form.addEventListener('submit', (ev) => {
