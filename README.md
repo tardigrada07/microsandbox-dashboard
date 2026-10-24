@@ -11,6 +11,10 @@ See `docs/plan.md` for the design.
 
 ## Run
 
+Download a binary from [Releases](https://github.com/tardigrada07/microsandbox-dashboard/releases)
+(Linux amd64/arm64, macOS arm64), check it (see `SECURITY.md`), `chmod +x` it and run it. Or build
+from source (Go 1.26+):
+
 ```sh
 # Real Microsandbox (needs cgo + a C toolchain; Linux with KVM, or macOS on Apple Silicon)
 go build -tags sdk -o msbdash .
@@ -53,6 +57,8 @@ Docker is not required.
 - Requests need a random per-run token (exchanged for an HttpOnly, SameSite=Strict cookie).
 - The `Host` header must be loopback (DNS-rebinding defense); unsafe methods need a same-origin `Origin`.
 
+Report vulnerabilities privately, see `SECURITY.md`.
+
 ## Platforms
 
 The Microsandbox Go SDK is a cgo wrapper and supports linux/amd64, linux/arm64 and darwin/arm64 only.
@@ -71,6 +77,23 @@ The tests use the in-memory backend, so they need no KVM or cgo. They do not cov
 ## Contributing
 
 `master` is protected: create a branch, push it and open a pull request. CI must pass before merging.
+Run `go vet ./...` and `go test ./...` first.
+
+The project is meant to stay small and secure:
+
+- **Localhost only is a hard requirement.** Do not relax the loopback address check, the `Host` check,
+  the `Origin` check on unsafe methods or the token cookie (`internal/api/auth.go`). Changes near them
+  need tests in `internal/api/api_test.go`.
+- **The server validates all input** (names, image refs, env keys, clean absolute paths, resource limits)
+  in `internal/api/handlers.go` before it reaches a backend. Checks in `web/app.js` only give early
+  feedback and must match the server; change both together and add a case to `TestValidation`.
+- **Untrusted data in the UI** (names, env, paths) is rendered with `textContent` or the `h()` helper,
+  never `innerHTML`.
+- **The default build stays pure Go** and testable without KVM. Code that uses the Microsandbox SDK goes
+  in `-tags sdk` files only.
+- **New operations** go into the `Backend` interface first, then `fake.go` and `sdk.go`, then the
+  handler and its validation.
+- Avoid new dependencies; the UI is vanilla JS with no build step.
 
 ## License
 
