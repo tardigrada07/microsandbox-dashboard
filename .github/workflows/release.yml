@@ -3,7 +3,10 @@ name: release
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:
+  workflow_dispatch: # builds artifacts only; publishing needs a tag
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -17,15 +20,41 @@ jobs:
           # Windows: add once the Microsandbox Go SDK ships a Windows library.
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: stable
       - run: go vet ./... && go vet -tags sdk ./...
       - run: go test ./...
       # The SDK backend uses cgo, so each target is built natively (no cross-compiling).
       - run: CGO_ENABLED=1 go build -tags sdk -trimpath -ldflags "-s -w" -o msbdash-${{ matrix.name }} .
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: msbdash-${{ matrix.name }}
           path: msbdash-${{ matrix.name }}
+
+  # Tags only: attach the binaries, a SHA256SUMS file and signed build provenance
+  # to a GitHub Release. The only job with write permissions.
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release
+      id-token: write # sign the provenance attestation
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: msbdash-*
+          merge-multiple: true
+          path: dist
+      - run: cd dist && sha256sum msbdash-* > SHA256SUMS && cat SHA256SUMS
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/msbdash-*
+      - run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
